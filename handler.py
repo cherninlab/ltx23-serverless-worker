@@ -163,7 +163,8 @@ def _ensure_models(job_input: Dict[str, Any], model_root: Path) -> Dict[str, str
 
 
 def _build_command(job_input: Dict[str, Any], paths: Dict[str, str], assets_dir: Path, output_video: Path) -> List[str]:
-    py_bin = _which("python3") or _which("python")
+    ltx_py = Path("/opt/LTX-2/.venv/bin/python")
+    py_bin = str(ltx_py) if ltx_py.exists() else (_which("python3") or _which("python"))
     if not py_bin:
         raise RuntimeError("python not found")
 
@@ -171,7 +172,6 @@ def _build_command(job_input: Dict[str, Any], paths: Dict[str, str], assets_dir:
     prompt = str(job_input.get("prompt", "A realistic talking person, preserving identity and natural texture."))
     seed = int(job_input.get("seed", 42))
     num_frames = int(job_input.get("num_frames", 121))
-    steps = int(job_input.get("num_inference_steps", 20))
     width, height = _resolution(job_input)
     frame_rate = float(job_input.get("frame_rate", 24.0))
 
@@ -196,8 +196,6 @@ def _build_command(job_input: Dict[str, Any], paths: Dict[str, str], assets_dir:
         str(num_frames),
         "--frame-rate",
         str(frame_rate),
-        "--num-inference-steps",
-        str(steps),
     ]
 
     if bool(job_input.get("enhance_prompt", False)):
