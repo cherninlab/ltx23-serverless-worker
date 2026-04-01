@@ -295,6 +295,13 @@ def _upload_artifacts(job_dir: Path, out_video: Path, remote_base: str, rclone_c
     return {"video": remote_video, "logs": remote_logs}
 
 
+def _tail_text(path: Path, limit_chars: int = 3000) -> str:
+    if not path.exists():
+        return ""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    return text[-limit_chars:]
+
+
 def _handler(job: Dict[str, Any]) -> Dict[str, Any]:
     job_input = job.get("input", {})
 
@@ -357,11 +364,31 @@ def _handler(job: Dict[str, Any]) -> Dict[str, Any]:
             encoding="utf-8",
         )
 
+        remote_path = job_input.get("gdrive_remote_path")
+        uploaded_meta: Dict[str, str] = {}
+        if remote_path:
+            rclone_conf_b64 = str(job_input.get("rclone_conf_base64", os.getenv("RCLONE_CONF_BASE64", "")))
+            if not rclone_conf_b64.strip():
+                raise ValueError("gdrive_remote_path provided but no rclone_conf_base64 supplied")
+            if proc.returncode == 0:
+                uploaded_meta = _upload_artifacts(job_dir, output_video, str(remote_path), rclone_conf_b64)
+            else:
+                # Upload logs even when generation fails.
+                logs_dir = job_dir / "logs"
+                with tempfile.TemporaryDirectory(prefix="rclone_conf_") as td:
+                    conf = Path(td) / "rclone.conf"
+                    conf.write_bytes(base64.b64decode(rclone_conf_b64))
+                    remote_logs = _resolve_remote_target(str(remote_path), logs_dir).rstrip("/") + "/"
+                    _must_run([_which("rclone") or "rclone", "copy", str(logs_dir), remote_logs, "--config", str(conf)])
+                    uploaded_meta["logs"] = remote_logs
+
         if proc.returncode != 0:
             return {
                 "status": "failed",
                 "return_code": proc.returncode,
-                "log_hint": "See runner_stdout.log and runner_stderr.log in uploaded logs",
+                "stdout_tail": _tail_text(logs_dir / "runner_stdout.log"),
+                "stderr_tail": _tail_text(logs_dir / "runner_stderr.log"),
+                "gdrive_remote_logs": uploaded_meta.get("logs"),
             }
 
         response: Dict[str, Any] = {
@@ -371,14 +398,11 @@ def _handler(job: Dict[str, Any]) -> Dict[str, Any]:
             "inference_seconds": round(elapsed, 3),
         }
 
-        remote_path = job_input.get("gdrive_remote_path")
-        if remote_path:
-            rclone_conf_b64 = str(job_input.get("rclone_conf_base64", os.getenv("RCLONE_CONF_BASE64", "")))
-            if not rclone_conf_b64.strip():
-                raise ValueError("gdrive_remote_path provided but no rclone_conf_base64 supplied")
-            uploaded = _upload_artifacts(job_dir, output_video, str(remote_path), rclone_conf_b64)
-            response["gdrive_remote_video"] = uploaded["video"]
-            response["gdrive_remote_logs"] = uploaded["logs"]
+        if uploaded_meta:
+            if "video" in uploaded_meta:
+                response["gdrive_remote_video"] = uploaded_meta["video"]
+            if "logs" in uploaded_meta:
+                response["gdrive_remote_logs"] = uploaded_meta["logs"]
 
         if str(job_input.get("return_mode", "metadata")) == "base64":
             response["video_base64"] = base64.b64encode(output_video.read_bytes()).decode("utf-8")
