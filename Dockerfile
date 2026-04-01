@@ -6,9 +6,12 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN set -euo pipefail; \
     export DEBIAN_FRONTEND=noninteractive; \
-    apt-get update && apt-get install -y --no-install-recommends rclone ffmpeg ca-certificates && rm -rf /var/lib/apt/lists/*; \
+    apt-get update && apt-get install -y --no-install-recommends rclone ffmpeg ca-certificates git && rm -rf /var/lib/apt/lists/*; \
     PY_BIN="$(command -v python3 || command -v python)"; \
-    "${PY_BIN}" -m pip install --break-system-packages --no-cache-dir -r /app/requirements.txt
+    "${PY_BIN}" -m pip install --break-system-packages --no-cache-dir -r /app/requirements.txt; \
+    git clone --depth 1 https://github.com/Lightricks/LTX-2 /opt/LTX-2; \
+    "${PY_BIN}" -m pip install --break-system-packages --no-cache-dir -e /opt/LTX-2/packages/ltx-core; \
+    "${PY_BIN}" -m pip install --break-system-packages --no-cache-dir -e /opt/LTX-2/packages/ltx-pipelines
 
 COPY handler.py /app/handler.py
 
