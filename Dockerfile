@@ -12,7 +12,7 @@ RUN set -euo pipefail; \
     git clone --depth 1 https://github.com/Lightricks/LTX-2 /opt/LTX-2; \
     "${PY_BIN}" -m pip install --break-system-packages --no-cache-dir uv; \
     cd /opt/LTX-2; \
-    "${PY_BIN}" -m uv sync --frozen --no-dev; \
+    uv sync --frozen --no-dev; \
     /opt/LTX-2/.venv/bin/pip install --no-cache-dir runpod gdown requests huggingface_hub
 
 COPY handler.py /app/handler.py
