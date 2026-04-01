@@ -163,8 +163,7 @@ def _ensure_models(job_input: Dict[str, Any], model_root: Path) -> Dict[str, str
 
 
 def _build_command(job_input: Dict[str, Any], paths: Dict[str, str], assets_dir: Path, output_video: Path) -> List[str]:
-    ltx_py = Path("/opt/LTX-2/.venv/bin/python")
-    py_bin = str(ltx_py) if ltx_py.exists() else (_which("python3") or _which("python"))
+    py_bin = _which("python3") or _which("python")
     if not py_bin:
         raise RuntimeError("python not found")
 
