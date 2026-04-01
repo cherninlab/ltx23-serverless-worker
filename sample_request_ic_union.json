@@ -1,0 +1,19 @@
+{
+  "input": {
+    "mode": "ic_union",
+    "hf_token": "<HF_TOKEN>",
+    "first_frame_url": "https://drive.google.com/open?id=<FRAME0_FILE_ID>",
+    "conditioning_video_url": "https://drive.google.com/open?id=<CHUNK_VIDEO_FILE_ID>",
+    "prompt": "A photorealistic talking person, preserve identity and natural skin texture.",
+    "resolution_preset": "1080p",
+    "num_frames": 121,
+    "num_inference_steps": 20,
+    "conditioning_strength": 1.0,
+    "lora_strength": 1.0,
+    "image_strength": 1.0,
+    "fp8_cast": true,
+    "gdrive_remote_path": "gdrive:columbus_008/results/ltx23_parallel_tests_v1/lane_a_1080_ic_union/",
+    "rclone_conf_base64": "<BASE64_RCLONE_CONF>",
+    "return_mode": "metadata"
+  }
+}
